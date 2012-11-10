@@ -25,4 +25,4 @@ resources:
   homepage: https://metacpan.org/release/Mojo::Facebook
   license: http://dev.perl.org/licenses/
   repository: git://github.com/jhthorsen/mojo-facebook
-version: 0.0202
+version: 0.0203

@@ -2,7 +2,7 @@ NAME
     Mojo::Facebook - Talk with Facebook
 
 VERSION
-    0.0202
+    0.0203
 
 DESCRIPTION
     This module implements basic actions to the Facebook graph protocol.
@@ -52,13 +52,14 @@ ERROR HANDLING
 ATTRIBUTES
   access_token
     This attribute need to be set when doing "fetch" on private objects or
-    when issuing "post". This is the "code" query param from the Facebook
-    authentication process.
-
-    See also Mojolicious::Plugin::OAuth2:
+    when issuing "post". This is not "code" query param from the Facebook
+    authentication process, something which need to be fetched from Facebook
+    later on. See the source code forMojolicious::Plugin::OAuth2 for
+    details.
 
         $oauth2->get_token(facebook => sub {
             my($oauth2, $access_token) = @_;
+            $fb = Mojo::Facebook->new(access_token => $access_token);
             $fb->post({
                 to => $fb_uid,
                 message => "Mojo::Facebook works!",

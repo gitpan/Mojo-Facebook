@@ -6,7 +6,7 @@ Mojo::Facebook - Talk with Facebook
 
 =head1 VERSION
 
-0.0201
+0.0202
 
 =head1 DESCRIPTION
 
@@ -17,6 +17,7 @@ This module implements basic actions to the Facebook graph protocol.
     use Mojo::Facebook;
     my $fb = Mojo::Facebook->new(access_token => $some_secret);
 
+    # fetch facebook name
     Mojo::IOLoop->delay(
         sub {
             my($delay) = @_;
@@ -30,6 +31,16 @@ This module implements basic actions to the Facebook graph protocol.
             warn $res->{error} || $res->{name};
         },
     )
+
+    # fetch cover photo url
+    $fb->fetch({
+        from => '1234567890',
+        fields => ['cover']
+    }, sub {
+        my($fb, $res) = @_;
+        return $res->{errors} if $res->{error};
+        warn $res->{cover}{source}; # URL
+    });
 
 =head1 ERROR HANDLING
 
@@ -56,14 +67,27 @@ use Mojo::UserAgent;
 use Mojo::Util qw/ url_unescape /;
 use constant TEST => $INC{'Test/Mojo.pm'};
 
-our $VERSION = eval '0.0201';
+our $VERSION = eval '0.0202';
 
 =head1 ATTRIBUTES
 
 =head2 access_token
 
 This attribute need to be set when doing L</fetch> on private objects
-or when issuing L</post>.
+or when issuing L</post>. This is the "code" query param from the
+Facebook authentication process.
+
+See also L<Mojolicious::Plugin::OAuth2>:
+
+    $oauth2->get_token(facebook => sub {
+        my($oauth2, $access_token) = @_;
+        $fb->post({
+            to => $fb_uid,
+            message => "Mojo::Facebook works!",
+        }, sub {
+            # ...
+        });
+    });
 
 =head2 app_namespace
 

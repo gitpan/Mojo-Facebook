@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Mojo-Facebook
-version:            0.03
+version:            0.0301
 abstract:           ~
 author:
     - Jan Henning Thorsen <jhthorsen@cpan.org>

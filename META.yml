@@ -1,28 +1,22 @@
----
-abstract: 'Talk with Facebook'
+--- #YAML:1.0
+name:               Mojo-Facebook
+version:            0.03
+abstract:           ~
 author:
-  - 'Jan Henning Thorsen - jhthorsen@cpan.org'
-build_requires:
-  ExtUtils::MakeMaker: 6.36
+    - Jan Henning Thorsen <jhthorsen@cpan.org>
+license:            unknown
+distribution_type:  module
 configure_requires:
-  ExtUtils::MakeMaker: 6.36
-distribution_type: module
-dynamic_config: 1
-generated_by: 'Module::Install version 1.06'
-license: perl
-meta-spec:
-  url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
-name: Mojo-Facebook
-no_index:
-  directory:
-    - inc
-    - t
+    ExtUtils::MakeMaker:  0
+build_requires:
+    ExtUtils::MakeMaker:  0
 requires:
-  Mojolicious: 3.32
-resources:
-  bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-Facebook
-  homepage: https://metacpan.org/release/Mojo::Facebook
-  license: http://dev.perl.org/licenses/
-  repository: git://github.com/jhthorsen/mojo-facebook
-version: 0.0203
+    Mojolicious:  3.97
+no_index:
+    directory:
+        - t
+        - inc
+generated_by:       ExtUtils::MakeMaker version 6.57_05
+meta-spec:
+    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
+    version:  1.4

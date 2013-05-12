@@ -6,7 +6,7 @@ Mojo::Facebook - Talk with Facebook
 
 =head1 VERSION
 
-0.0203
+0.03
 
 =head1 DESCRIPTION
 
@@ -67,7 +67,7 @@ use Mojo::UserAgent;
 use Mojo::Util qw/ url_unescape /;
 use constant TEST => $INC{'Test/Mojo.pm'};
 
-our $VERSION = eval '0.0203';
+our $VERSION = '0.03';
 
 =head1 ATTRIBUTES
 
@@ -96,12 +96,16 @@ This attribute is used by L</publish> as prefix to the publish URL:
 
     https://graph.facebook.com/$id/$app_namespace:$action
 
+=head2 scheme
+
+Used to either run requests over "http" or "https". Default to "https".
+
 =cut
 
 has access_token => '';
 has app_namespace => '';
+has scheme => 'https';
 has _ua => sub { Mojo::UserAgent->new };
-has _url => sub { $ENV{FAKE_FACEBOOK_URL} || 'https://graph.facebook.com' };
 
 =head1 METHODS
 
@@ -129,8 +133,10 @@ check for errors.
 
 sub fetch {
     my($self, $args, $cb) = @_;
-    my $tx = $self->_ua->build_tx(GET => $self->_url);
+    my $tx = $self->_tx('GET');
     my $url = $tx->req->url;
+
+    Scalar::Util::weaken($self);
 
     if($self->access_token) {
         $url->query([ access_token => url_unescape $self->access_token ]);
@@ -145,8 +151,8 @@ sub fetch {
         $url->query([ $key => $args->{$key} ]);
     }
 
-    $url->path($args->{from} || 'me');
-    $self->_ua->start($tx, sub { $cb->(__check_response(@_)) });
+    push @{ $url->path->parts }, $args->{from} || 'me';
+    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
 =head2 post
@@ -195,8 +201,11 @@ TODO: Tags are not supported yet. Getting
 sub post {
     my($self, $args, $cb) = @_;
     my($message, $tags) = $self->_message_to_tags($args->{message});
-    my $tx = $self->_ua->build_tx(POST => $self->_url);
+    my $tx = $self->_tx('POST');
     my $p = Mojo::Parameters->new;
+    my $path = $tx->req->url->path;
+
+    Scalar::Util::weaken($self);
 
     $p->append(access_token => $self->access_token);
     $p->append(message => $message);
@@ -211,14 +220,14 @@ sub post {
     #}
 
     if($args->{action} and $args->{object}) {
-        $tx->req->url->path($args->{to} .'/' .join ':', @$args{qw/ object action /});
+        push @{ $path->parts }, $args->{to}, join ':', @$args{qw/ object action /};
     }
     else {
-        $tx->req->url->path($args->{to} .'/feed');
+        push @{ $path->parts }, $args->{to}, 'feed';
     }
 
     $tx->req->body($p->to_string);
-    $self->_ua->start($tx, sub { $cb->(__check_response(@_)) });
+    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
 sub _message_to_tags {
@@ -256,14 +265,16 @@ check for errors.
 
 sub comment {
     my($self, $args, $cb) = @_;
-    my $tx = $self->_ua->build_tx(POST => $self->_url);
+    my $tx = $self->_tx('POST');
     my $p = Mojo::Parameters->new;
+
+    Scalar::Util::weaken($self);
 
     $p->append(access_token => $self->access_token);
     $p->append(message => $args->{message});
     $tx->req->body($p->to_string);
-    $tx->req->url->path($args->{on} .'/comments');
-    $self->_ua->start($tx, sub { $cb->(__check_response(@_)) });
+    push @{ $tx->req->url->path->parts }, $args->{on}, 'comments';
+    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
 =head2 publish
@@ -317,9 +328,11 @@ check for errors.
 
 sub publish {
     my($self, $args, $cb) = @_;
-    my $tx = $self->_ua->build_tx(POST => $self->_url);
+    my $tx = $self->_tx('POST');
     my $p = Mojo::Parameters->new;
     my $tags = [];
+
+    Scalar::Util::weaken($self);
 
     if($args->{message}) {
         ($args->{message}, $tags) = $self->_message_to_tags($args->{message});
@@ -334,9 +347,10 @@ sub publish {
     }
 
     $p->append(access_token => $self->access_token);
-    $tx->req->url->path(sprintf '%s/%s:%s', $args->{to}, $self->app_namespace, $args->{action});
+
+    push @{ $tx->req->url->path }, $args->{to}, join ':', $self->app_namespace, $args->{action};
     $tx->req->body($p->to_string);
-    $self->_ua->start($tx, sub { $cb->(__check_response(@_)) });
+    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
 =head2 delete_object
@@ -356,11 +370,13 @@ check for errors.
 
 sub delete_object {
     my($self, $id, $cb) = @_;
-    my $tx = $self->_ua->build_tx(DELETE => $self->_url);
+    my $tx = $self->_tx('DELETE');
+
+    Scalar::Util::weaken($self);
 
     $tx->req->url->query->param(access_token => $self->access_token);
-    $tx->req->url->path($id);
-    $self->_ua->start($tx, sub { $cb->(__check_response(@_)) });
+    push @{ $tx->req->url->path->parts }, $id;
+    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
 =head2 picture
@@ -379,8 +395,11 @@ sub picture {
     my $self = shift;
     my $who = shift || 'me';
     my $type = shift || 'square';
+    my $url = Mojo::URL->new($ENV{FAKE_FACEBOOK_URL} || 'https://graph.facebook.com');
 
-    return Mojo::URL->new($self->_url)->path("$who/picture")->query(type => $type);
+    push @{ $url->path->parts }, $who, 'picture';
+    $url->query(type => $type);
+    $url;
 }
 
 sub __check_response {
@@ -400,7 +419,15 @@ sub __check_response {
     }
 
     $json->{__tx} = $tx if TEST;
-    return undef, $json;
+    $json;
+}
+
+sub _tx {
+    my($self, $method) = @_;
+    my $url = Mojo::URL->new($ENV{FAKE_FACEBOOK_URL} || 'https://graph.facebook.com');
+
+    $url->scheme($self->scheme) if $url->host;
+    $self->_ua->build_tx($method => $url);
 }
 
 =head1 COPYRIGHT & LICENSE
@@ -412,6 +439,9 @@ it under the same terms as Perl itself.
 
 Jan Henning Thorsen - jhthorsen@cpan.org
 
+=cut
+
+1;
 =cut
 
 1;

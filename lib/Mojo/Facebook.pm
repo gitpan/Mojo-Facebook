@@ -6,7 +6,7 @@ Mojo::Facebook - Talk with Facebook
 
 =head1 VERSION
 
-0.0302
+0.04
 
 =head1 DESCRIPTION
 
@@ -67,7 +67,7 @@ use Mojo::UserAgent;
 use Mojo::Util qw/ url_unescape /;
 use constant TEST => $INC{'Test/Mojo.pm'};
 
-our $VERSION = '0.0302';
+our $VERSION = '0.04';
 
 =head1 ATTRIBUTES
 
@@ -152,81 +152,6 @@ sub fetch {
     }
 
     push @{ $url->path->parts }, $args->{from} || 'me';
-    $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
-}
-
-=head2 post
-
-    $self->post({
-        to => $id,
-        message => $str,
-        link => $url,
-        name => $str,
-        caption => $str,
-        description => $str,
-        picture => $url,
-    }, $callback);
-
-Creates a post at C<$who>'s wall, looking like this:
-
-    .------------------------------------.
-    | $message ...                       |
-    |                                    |
-    | .----------.                       |
-    | | $picture |  [$link]($name)       |
-    | |          |  $caption ...         |
-    | |          |  $description ...     |
-    | '----------'                       |
-    '------------------------------------'
-
-C<$callback> will be called like this:
-
-    $callback->($self, $res);
-
-C<$res> will be a hash-ref containing the result. Look for the "error" key to
-check for errors.
-
-TODO: Tags are not supported yet. Getting
-
-    {
-        "error":{
-            "message":"(#100) Array does not resolve to a valid user ID",
-            "type":"OAuthException",
-            "code":100
-        }
-    }
-
-=cut
-
-sub post {
-    my($self, $args, $cb) = @_;
-    my($message, $tags) = $self->_message_to_tags($args->{message});
-    my $tx = $self->_tx('POST');
-    my $p = Mojo::Parameters->new;
-    my $path = $tx->req->url->path;
-
-    Scalar::Util::weaken($self);
-
-    $p->append(access_token => $self->access_token);
-    $p->append(message => $message);
-
-    for my $key (qw/ picture link name caption description source place /) {
-        $args->{$key} or next;
-        $p->append($key => $args->{$key});
-    }
-
-    #if(@$tags) {
-    #    $p->append(tags => Mojo::JSON->new->encode($tags));
-    #}
-
-    if($args->{action} and $args->{object}) {
-        push @{ $path->parts }, $args->{to}, join ':', @$args{qw/ object action /};
-    }
-    else {
-        push @{ $path->parts }, $args->{to}, 'feed';
-    }
-
-    $tx->req->body($p->to_string);
     $self->_ua->start($tx, sub { $self->$cb(__check_response(@_)) });
 }
 
@@ -441,5 +366,7 @@ it under the same terms as Perl itself.
 Jan Henning Thorsen - jhthorsen@cpan.org
 
 =cut
+
+1;
 
 1;

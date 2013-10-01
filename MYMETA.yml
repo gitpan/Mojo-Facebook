@@ -19,4 +19,6 @@ no_index:
     - inc
 requires:
   Mojolicious: 3.97
-version: 0.0401
+resources:
+  repository: https://github.com/jhthorsen/mojo-facebook
+version: 0.0402
